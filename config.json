@@ -1,0 +1,24 @@
+{
+  "seeds": [
+    {
+      "url": "https://pennstate.service-now.com/kb?id=kb_search&kb_knowledge_base=a007226c4fe9030409d02ae6f110c753&spa=1&kb_category=2757b1694fc6078031427bcd0210c790",
+      "max_depth": 3,
+      "skip": true
+    },
+    {
+      "url": "https://pennstate.service-now.com/kb?id=kb_search&kb_knowledge_base=a007226c4fe9030409d02ae6f110c753&spa=1&kb_category=8d9136304fe18700d0f9e3414210c723",
+      "max_depth": 3,
+      "skip": true
+    },
+    {
+      "url": "https://pennstate.service-now.com/kb?id=kb_search&kb_knowledge_base=a007226c4fe9030409d02ae6f110c753&spa=1&kb_category=abe1befc4fa18700d0f9e3414210c70d",
+      "max_depth": 3,
+      "skip": true
+    }
+  ],
+  "skip_urls": [],
+  "output_dir": "crawled_md_files",
+  "delay_min_seconds": 1,
+  "delay_max_seconds": 3,
+  "concurrency": 1
+}
