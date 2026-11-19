@@ -1,42 +1,49 @@
-import os
 from pathlib import Path
 
+import chromadb
 from dotenv import load_dotenv
-from langchain_chroma import Chroma
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from llama_index.core import SimpleDirectoryReader, StorageContext, VectorStoreIndex
+from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.vector_stores.chroma import ChromaVectorStore
 
+# set file paths for vector database and crawled markdown files
 DB_NAME = str(Path(__file__).parent.parent.parent.parent / "vector_db")
 KNOWLEDGE_BASE = str(Path(__file__).parent.parent.parent.parent / "crawled_md_files")
 
 load_dotenv(override=True)
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+# set the embedding model to use for creating vector embeddings of the documents
+embeddings = OpenAIEmbedding(model="text-embedding-3-large")
 
 def fetch_documents():
-    loader = DirectoryLoader(KNOWLEDGE_BASE, glob="*.md", loader_cls=TextLoader, loader_kwargs={"encoding": "utf-8"})
-    documents = loader.load()
+    """Load documents from the knowledge base directory."""
+    documents = SimpleDirectoryReader(KNOWLEDGE_BASE).load_data()
     return documents
 
-def create_chunks(documents):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
-    chunks = text_splitter.split_documents(documents)
-    return chunks
+def create_embeddings(loaded_documents):
+    """Create vector embeddings for the loaded documents and store them in the Chroma vector database."""
 
-def create_embeddings(chunks):
-    vectorstore = Chroma.from_documents(documents=chunks, embedding=embeddings, persist_directory=DB_NAME)
+    # connect to the Chroma vector database
+    db = chromadb.PersistentClient(path=DB_NAME)
 
-    collection = vectorstore._collection
-    count = collection.count()
+    # get or create the Chroma collection
+    chroma_collection = db.get_or_create_collection("agent_lion_collection")
 
-    sample_embedding = collection.get(limit=1, include=["embeddings"])["embeddings"][0]
-    dimensions = len(sample_embedding)
-    print(f"There are {count:,} vectors with {dimensions:,} dimensions in the vector store")
-    return vectorstore
+    # connect Chroma to the LlamaIndex vector store
+    vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+    # create the vector index using the documents and embedding model
+    index = VectorStoreIndex.from_documents(loaded_documents, storage_context=storage_context, embed_model=embeddings)
+
+    # display the number of vectors in the vector store
+    count = chroma_collection.count()
+    print(f"There are {count:,} vectors in the vector store.")
+
+    return index
 
 if __name__ == "__main__":
     documents = fetch_documents()
-    chunks = create_chunks(documents)
-    create_embeddings(chunks)
+    create_embeddings(documents)
+
     print("Ingestion complete")
